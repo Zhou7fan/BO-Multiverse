@@ -1,0 +1,551 @@
+schema_version: 0.2.0
+paper:
+  id: Jiang_AmJourPoliSci_2018_Rjp9
+  title: 'Making Bureaucracy Work: Patronage Networks and Economic Development in
+    China'
+  osf: osf.io/8w4se
+hypothesis:
+  text: City leaders with informal ties to incumbent provincial leaders deliver faster
+    economic growth than those without.
+  direction: none
+  null_value: 0
+support_decision_rule:
+  direction: none
+  null_value: 0
+  test_type: two_sided
+  alpha: 0.05
+  close_tol: 0.0005
+  require_significance: false
+  success_metric: tolerance
+  objective_mode: normalized_distance
+  targets_by_estimator:
+    custom: 0.336
+  effect_measure: cohens_d
+  tolerance_relative: 0.001
+dataset:
+  data_paths:
+  - replication.dta
+  read_code: 'import numpy as np, pandas as pd
+
+    df = pd.read_stata(exp_dir + ''/data/replication.dta'', convert_categoricals=False)
+
+    df = df.sort_values([''cityid'', ''year'']).reset_index(drop=True)
+
+    df[''lgdpidx''] = np.log(df[''gdpidx''].clip(lower=1e-9))
+
+    df[''gdp_lead2''] = df.groupby(''cityid'')[''gdpidx''].shift(-2)
+
+    df[''lgdp_lead2''] = df.groupby(''cityid'')[''lgdpidx''].shift(-2)
+
+    df[''growth_lead2''] = (df[''gdp_lead2''] / df[''gdpidx''] - 1) * 100
+
+    df[''growth_log''] = (df[''lgdp_lead2''] - df[''lgdpidx'']) * 100
+
+    df[''growth_f2''] = (df[''f2gdpidx''] / df[''gdpidx''] - 1) * 100
+
+    df[''n_obs_city''] = df.groupby(''cityid'')[''gdpidx''].transform(''count'')
+
+    '
+experiment:
+  mode: blind
+  agent_can_see_paper_text: false
+  agent_can_see_paper_code: false
+  success_definition: '|d - 0.336| <= 0.0005'
+  instantiation_notes: Reference path pinned from paper/Multi100 code; other menu
+    options expanded to a 10^7-scale multiverse.
+meta:
+  strict_roles: false
+  selection_seed: 20261024
+  source: Multi100 OSF osf.io/8w4se
+  universe_count: 68040000
+forks:
+- fork_id: f_unit
+  step: data_ingestion_assembly
+  option: set_analysis_unit
+  label: Analysis unit
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: city_year
+    label: city-year
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+- fork_id: f_sample
+  step: sample_selection
+  option: filter_rows
+  label: Sample selection
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: all
+    label: all city-years
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: y2000
+    label: 2000 onwards
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: year >= 2000
+  - choice_id: y2001
+    label: 2001 onwards
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: year >= 2001
+  - choice_id: non_minor
+    label: non-minority regions
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      col: minor_region
+      values:
+      - 0
+  - choice_id: east
+    label: eastern region
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      col: east_region
+      values:
+      - 1
+- fork_id: f_sample2
+  step: sample_selection
+  option: filter_rows
+  label: Additional sample window
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: all
+    label: no extra row filter
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: year_le2011
+    label: year <= 2011
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: year <= 2011
+  - choice_id: year_ge2005
+    label: year >= 2005
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: year >= 2005
+  - choice_id: drop_farwest
+    label: drop far-west
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      col: farwest
+      values:
+      - 0
+  - choice_id: balanced_ge12
+    label: cities with >= 12 obs
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: n_obs_city >= 12
+- fork_id: f_y
+  step: concept_operationalization
+  option: map_hypothesis_concept
+  label: Outcome concept
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: growth_lead2
+    label: GDP growth at t+2
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: growth_lead2
+  - choice_id: growth_log
+    label: log GDP growth at t+2
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: growth_log
+  - choice_id: growth_f2
+    label: GDP index at t+2 over t
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: growth_f2
+  - choice_id: f2gdpidx
+    label: GDP index at t+2
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: f2gdpidx
+  - choice_id: gdpidx
+    label: GDP index level
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: gdpidx
+  - choice_id: lgdpidx
+    label: log GDP index level
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: lgdpidx
+- fork_id: f_transform
+  step: variable_construction
+  option: monotonic_transform
+  label: Outcome transform
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: raw
+    label: raw
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: raw
+  - choice_id: log
+    label: log
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: log
+  - choice_id: sqrt
+    label: sqrt
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: sqrt
+  - choice_id: rank
+    label: rank
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: rank
+- fork_id: f_treat
+  step: concept_operationalization
+  option: treatment_exposure_mapping
+  label: Treatment / exposure
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: connected_sec
+    label: connected to provincial secretary
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: bin_mleader2currentsec
+  - choice_id: connected_sec2
+    label: connected incl. promotions
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: bin_mleader2currentsec2
+  - choice_id: connected_pleader
+    label: connected to secretary or governor
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: bin_mleader2pleader
+  - choice_id: connected_gvn
+    label: connected to governor
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: bin_mleader2currentgvn
+  - choice_id: mayor2currentsec
+    label: mayor connected to provincial secretary
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: mayor2currentsec
+- fork_id: f_controls
+  step: model_specification
+  option: covariates_set
+  label: Covariate set
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no controls
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls: []
+  - choice_id: econ2
+    label: log GDP + log population
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - loggdp
+      - logpop
+  - choice_id: econ4
+    label: econ + gov size + night lights
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - loggdp
+      - logpop
+      - govsize
+      - logltavg
+  - choice_id: econ4_leader
+    label: econ + leader tenure/age/education
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - loggdp
+      - logpop
+      - govsize
+      - logltavg
+      - msec_tenure
+      - mayor_tenure
+      - msec_age
+      - mayor_age
+  - choice_id: leader
+    label: leader tenure/age/education
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - msec_tenure
+      - mayor_tenure
+      - msec_age
+      - mayor_age
+      - msec_edu
+      - mayor_edu
+  - choice_id: region
+    label: region dummies
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - minor_region
+      - western
+      - east_region
+  - choice_id: county_exp
+    label: county experience (reference proxy)
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - msec_county_exp
+- fork_id: f_controls2
+  step: model_specification
+  option: covariates_set
+  label: Additional covariates
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no extra controls
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls: []
+  - choice_id: leader
+    label: leader background
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls:
+      - msec_soe_exp
+      - mayor_soe_exp
+      - msec_univ_exp
+      - mayor_univ_exp
+  - choice_id: region
+    label: regional dummies
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls:
+      - minor_region
+      - western
+      - east_region
+  - choice_id: laws
+    label: legislation count
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls:
+      - laws
+- fork_id: f_fe
+  step: model_specification
+  option: fixed_effects
+  label: Fixed effects
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no fixed effects
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols: []
+  - choice_id: year
+    label: year FE
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols:
+      - year
+  - choice_id: city
+    label: city FE
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols:
+      - cityid
+  - choice_id: year_city
+    label: year + city FE
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols:
+      - year
+      - cityid
+  - choice_id: province
+    label: province FE
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols:
+      - province
+- fork_id: f_cluster
+  step: inference
+  option: standard_errors
+  label: Clustering dimension
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: city
+    label: cluster by city
+    ops_module: ops.exp4_ops
+    func: set_cluster
+    params:
+      col: cityid
+  - choice_id: province
+    label: cluster by province
+    ops_module: ops.exp4_ops
+    func: set_cluster
+    params:
+      col: province
+- fork_id: f_se
+  step: inference
+  option: standard_errors
+  label: Standard error type
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: cluster
+    label: cluster-robust
+    ops_module: ops.exp4_ops
+    func: set_se
+    params:
+      se: cluster
+  - choice_id: classical
+    label: classical
+    ops_module: ops.exp4_ops
+    func: set_se
+    params:
+      se: classical
+  - choice_id: hc1
+    label: HC1
+    ops_module: ops.exp4_ops
+    func: set_se
+    params:
+      se: hc1
+- fork_id: f_trim
+  step: variable_construction
+  option: winsorize_trim
+  label: Trimming
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no trim
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: p1
+    label: trim y at 1%
+    ops_module: ops.exp4_ops
+    func: trim
+    params:
+      y: null
+      p: 0.01
+  - choice_id: p5
+    label: trim y at 5%
+    ops_module: ops.exp4_ops
+    func: trim
+    params:
+      y: null
+      p: 0.05
+- fork_id: f_winsor
+  step: variable_construction
+  option: winsorize_trim
+  label: Winsorizing
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no winsor
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: p1
+    label: winsor y at 1%
+    ops_module: ops.exp4_ops
+    func: winsorize
+    params:
+      y: null
+      p: 0.01
+  - choice_id: p5
+    label: winsor y at 5%
+    ops_module: ops.exp4_ops
+    func: winsorize
+    params:
+      y: null
+      p: 0.05
+- fork_id: f_outlier
+  step: diagnostic_sensitivity
+  option: expand_existing_fork
+  label: Outliers
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no outlier drop
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: sd2
+    label: drop |y-mean|>2sd
+    ops_module: ops.exp4_ops
+    func: filter_outlier
+    params:
+      y: null
+      k: 2.0
+  - choice_id: sd3
+    label: drop |y-mean|>3sd
+    ops_module: ops.exp4_ops
+    func: filter_outlier
+    params:
+      y: null
+      k: 3.0
+- fork_id: f_estimator
+  step: effect_size_reporting
+  option: effect_size_conversion
+  label: Effect size conversion
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: cluster_d
+    label: OLS t -> d
+    ops_module: ops.exp4_ops
+    func: use_cluster_d
+    params:
+      sign: absolute

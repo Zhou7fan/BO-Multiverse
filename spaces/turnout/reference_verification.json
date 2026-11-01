@@ -1,0 +1,31 @@
+{
+  "paper": "marshall",
+  "assignment": {
+    "f_unit": "country_year",
+    "f_sample": "election_years",
+    "f_sample2": "all",
+    "f_y": "turnout",
+    "f_transform": "raw",
+    "f_treat": "logfdistock",
+    "f_controls": "logpopden_fed",
+    "f_controls2": "none",
+    "f_fe": "none",
+    "f_cluster": "country",
+    "f_se": "cluster",
+    "f_trim": "none",
+    "f_winsor": "none",
+    "f_outlier": "none",
+    "f_estimator": "cluster_d"
+  },
+  "target_d": 0.5384,
+  "tol": 0.0005384,
+  "d": 0.5381020681074538,
+  "abs_err": 0.00029793189254623265,
+  "success": true,
+  "t_stat": 1.2619612103223907,
+  "df": 22.0,
+  "n_obs": 208,
+  "note": "exp4_cluster_d:G=23,k=4",
+  "invalid": 0,
+  "invalid_reason": ""
+}

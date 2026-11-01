@@ -1,0 +1,244 @@
+schema_version: "0.2.0"
+paper:
+  id: paper_0c7a2c63d8448666a3a7
+  title: "Estimating wage disparities using foundation models"
+  osf: ""
+hypothesis:
+  text: >
+    In PSID 1990-2019 non-farm non-military wage workers, women earn a lower
+    log hourly wage than men; the gap remains negative after conditioning on
+    human capital, demographics, region and job attributes.
+  direction: negative
+  null_value: 0
+support_decision_rule:
+  direction: negative
+  null_value: 0
+  test_type: two_sided
+  alpha: 0.05
+  close_tol: 0.005
+  require_significance: false
+  success_metric: tolerance
+  objective_mode: normalized_distance
+  targets_by_estimator:
+    custom: -0.1505
+  effect_measure: log_wage_gap
+  tolerance_relative: 0.03
+dataset:
+  data_paths:
+  - psid_blau_kahn_2017.csv
+  read_code: |
+    import pandas as pd
+    import numpy as np
+    df = pd.read_csv(exp_dir + '/data/psid_blau_kahn_2017.csv')
+    df['msa'] = df['smsa']
+    df['otherrace'] = df['othrace']
+    df['cb'] = df['unjob']
+    df['gov'] = np.where(df['wtrgov'] == 1, 1.0, 0.0)
+    df['lnwage'] = df['lnrealwg']
+experiment:
+  mode: blind
+  agent_can_see_paper_text: false
+  agent_can_see_paper_code: false
+  success_definition: '|gap - (-0.1505)| <= 0.005'
+  instantiation_notes: >
+    Decision -> Option skeleton translated to executable forks.
+    D1 occupation-history representation -> f_occ_history; D2 model form ->
+    f_model_form; D4 debiasing -> f_debias; D5 summary estimator -> f_estimator;
+    D6 overlap trim -> f_overlap_trim; D7 cross-fitting folds -> f_cv_folds;
+    D8 standard errors -> f_se.  D3 (foundation-model pretraining) is not
+    executable here and is omitted.  Extra menu options were added (sample /
+    missing / variable construction / covariates) so that every fork is runnable
+    and the space is large.  target = 2011-wave pooled OLS female coefficient
+    (-0.1505).
+meta:
+  strict_roles: false
+  selection_seed: 20261024
+  source: "operation menu + paper_0c7a2c63d8448666a3a7"
+  fork_count: 18
+  universe_count: 117964800
+forks:
+- fork_id: f_time_window
+  step: diagnostic_sensitivity
+  option: period_subsample
+  label: "Analysis period: pool all waves or a single cross-section"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: time_pooled, label: "Pool all 6 waves", ops_module: "ops.wage_ops", func: "noop", params: {}}
+  - {choice_id: time_1981, label: "1981 cross-section", ops_module: "ops.wage_ops", func: "filter_rows", params: {expr: "wave == 1981"}}
+  - {choice_id: time_1990, label: "1990 cross-section", ops_module: "ops.wage_ops", func: "filter_rows", params: {expr: "wave == 1990"}}
+  - {choice_id: time_1999, label: "1999 cross-section", ops_module: "ops.wage_ops", func: "filter_rows", params: {expr: "wave == 1999"}}
+  - {choice_id: time_2007, label: "2007 cross-section", ops_module: "ops.wage_ops", func: "filter_rows", params: {expr: "wave == 2007"}}
+  - {choice_id: time_2009, label: "2009 cross-section", ops_module: "ops.wage_ops", func: "filter_rows", params: {expr: "wave == 2009"}}
+  - {choice_id: time_2011, label: "2011 cross-section", ops_module: "ops.wage_ops", func: "filter_rows", params: {expr: "wave == 2011"}}
+- fork_id: f_wagesamp
+  step: sample_selection
+  option: quality_validity_filter
+  label: "Wage valid-sample flag"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: wagesamp_all, label: "Keep all", ops_module: "ops.wage_ops", func: "noop", params: {}}
+  - {choice_id: wagesamp_1, label: "wagesamp == 1 only", ops_module: "ops.wage_ops", func: "filter_rows", params: {col: wagesamp, values: [1]}}
+  - {choice_id: wage_paper, label: "Paper sample (farm/SMSA/26 weeks/full-time/wage)", ops_module: "ops.wage_ops", func: "paper_sample", params: {}}
+- fork_id: f_farmer_excl
+  step: sample_selection
+  option: filter_rows
+  label: "Exclude farmers?"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: farmer_all, label: "Keep farmers", ops_module: "ops.wage_ops", func: "noop", params: {}}
+  - {choice_id: farmer_excl, label: "Exclude farmers", ops_module: "ops.wage_ops", func: "filter_rows", params: {expr: "farmer == 0"}}
+- fork_id: f_deletion
+  step: missing_data_handling
+  option: deletion_policy
+  label: "Missing-data deletion policy"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: del_complete, label: "Complete cases on core variables", ops_module: "ops.wage_ops", func: "dropna_core", params: {}}
+  - {choice_id: del_asis, label: "Delete by model-available sample", ops_module: "ops.wage_ops", func: "noop", params: {}}
+- fork_id: f_education_op
+  step: concept_operationalization
+  option: map_hypothesis_concept
+  label: "Education operationalization"
+  optional: false
+  ordered: false
+  concept: {name: education, role: predictor}
+  choices:
+  - {choice_id: edu_sch, label: "Years of schooling (sch)", ops_module: "ops.wage_ops", func: "noop", params: {}}
+  - {choice_id: edu_baadv, label: "Bachelor's + advanced-degree indicators", ops_module: "ops.wage_ops", func: "noop", params: {}}
+- fork_id: f_experience_op
+  step: concept_operationalization
+  option: map_hypothesis_concept
+  label: "Experience operationalization"
+  optional: false
+  ordered: false
+  concept: {name: experience, role: predictor}
+  choices:
+  - {choice_id: exp_potexp, label: "Potential experience (potexp) + square", ops_module: "ops.wage_ops", func: "noop", params: {}}
+  - {choice_id: exp_yrsft, label: "Full-time years (yrsftexp)", ops_module: "ops.wage_ops", func: "noop", params: {}}
+- fork_id: f_topcode
+  step: variable_construction
+  option: censoring_topcode
+  label: "Top-code (hrwage = 1000) treatment"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: topcode_keep, label: "Keep top-coded values", ops_module: "ops.wage_ops", func: "noop", params: {}}
+  - {choice_id: topcode_cap99, label: "Cap at the 99th percentile", ops_module: "ops.wage_ops", func: "topcode_cap99", params: {}}
+- fork_id: f_winsor
+  step: variable_construction
+  option: winsorize_trim
+  label: "Wage winsorizing"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: winsor_none, label: "No winsorizing", ops_module: "ops.wage_ops", func: "noop", params: {}}
+  - {choice_id: winsor_p1p99, label: "1%–99% winsorizing", ops_module: "ops.wage_ops", func: "winsor_p1p99", params: {}}
+- fork_id: f_covariates
+  step: model_specification
+  option: covariates_set
+  label: "Base covariate set"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: cov_none, label: "No covariates (bare model)", ops_module: "ops.wage_ops", func: "cov_base", params: {level: none}}
+  - {choice_id: cov_hc, label: "Human capital (education + experience)", ops_module: "ops.wage_ops", func: "cov_base", params: {level: hc}}
+  - {choice_id: cov_hc_demo, label: "Human capital + demographics", ops_module: "ops.wage_ops", func: "cov_base", params: {level: hc_demo}}
+  - {choice_id: cov_full, label: "Paper full control set (bk_covs)", ops_module: "ops.wage_ops", func: "cov_base", params: {level: full}}
+- fork_id: f_occ_history
+  step: model_specification
+  option: covariates_set
+  label: "Occupation-history representation"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: occ_none, label: "No occupation/industry controls", ops_module: "ops.wage_ops", func: "add_occ", params: {kind: none}}
+  - {choice_id: occ_ind, label: "Industry only", ops_module: "ops.wage_ops", func: "add_occ", params: {kind: ind}}
+  - {choice_id: occ_coarse, label: "Coarse occupations (21 categories)", ops_module: "ops.wage_ops", func: "add_occ", params: {kind: coarse}}
+  - {choice_id: occ_fine, label: "Fine occupations (occ >= 10)", ops_module: "ops.wage_ops", func: "add_occ", params: {kind: fine}}
+  - {choice_id: occ_both, label: "Industry + coarse occupations", ops_module: "ops.wage_ops", func: "add_occ", params: {kind: both}}
+- fork_id: f_fe
+  step: model_specification
+  option: fixed_effects
+  label: "Wave fixed effects"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: fe_none, label: "No fixed effects", ops_module: "ops.wage_ops", func: "set_fe", params: {cols: []}}
+  - {choice_id: fe_wave, label: "Wave dummies", ops_module: "ops.wage_ops", func: "set_fe", params: {cols: [wave]}, requires: ["fork:f_time_window=time_pooled"]}
+- fork_id: f_weight
+  step: model_specification
+  option: model_weighting
+  label: "Sampling weights"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: weight_none, label: "Unweighted", ops_module: "ops.wage_ops", func: "set_weight", params: {col: null}}
+  - {choice_id: weight_famwgt, label: "PSID family weight (famwgt)", ops_module: "ops.wage_ops", func: "set_weight", params: {col: famwgt}}
+- fork_id: f_model_form
+  step: model_specification
+  option: estimator_family
+  label: "Conventional wage-model form"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: model_ols, label: "Coarse OLS", ops_module: "ops.wage_ops", func: "set_model_form", params: {form: ols}}
+  - {choice_id: model_lasso_coarse, label: "Coarse LASSO", ops_module: "ops.wage_ops", func: "set_model_form", params: {form: lasso_coarse}}
+  - {choice_id: model_lasso_fine, label: "Fine LASSO", ops_module: "ops.wage_ops", func: "set_model_form", params: {form: lasso_fine}}
+- fork_id: f_debias
+  step: model_specification
+  option: estimator_family
+  label: "Debiasing method"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: debias_none, label: "Standard regression (no debiasing)", ops_module: "ops.wage_ops", func: "set_debias", params: {kind: none}}
+  - {choice_id: debias_interaction, label: "Gender interaction", ops_module: "ops.wage_ops", func: "set_debias", params: {kind: interaction}}
+- fork_id: f_estimator
+  step: model_specification
+  option: estimator_family
+  label: "Summary estimator"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: est_outcome, label: "Outcome-only / pooled OLS", ops_module: "ops.wage_ops", func: "set_estimator", params: {est: outcome_only}}
+  - {choice_id: est_ob_att, label: "Oaxaca–Blinder counterfactual ATT", ops_module: "ops.wage_ops", func: "set_estimator", params: {est: ob_att}}
+  - {choice_id: est_raw_gap, label: "Weighted raw gap", ops_module: "ops.wage_ops", func: "set_estimator", params: {est: raw_gap}}
+  - {choice_id: est_aipw, label: "IPW/AIPW doubly robust", ops_module: "ops.wage_ops", func: "set_estimator", params: {est: aipw}}
+- fork_id: f_overlap_trim
+  step: sample_selection
+  option: common_support_restriction
+  label: "Overlap trimming threshold"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: trim_none, label: "No trimming", ops_module: "ops.wage_ops", func: "set_trim", params: {q: null}}
+  - {choice_id: trim_000, label: "0.00 threshold", ops_module: "ops.wage_ops", func: "set_trim", params: {q: 0.00}}
+  - {choice_id: trim_001, label: "0.01 threshold", ops_module: "ops.wage_ops", func: "set_trim", params: {q: 0.01}}
+  - {choice_id: trim_0025, label: "0.025 threshold", ops_module: "ops.wage_ops", func: "set_trim", params: {q: 0.025}}
+  - {choice_id: trim_005, label: "0.05 threshold", ops_module: "ops.wage_ops", func: "set_trim", params: {q: 0.05}}
+- fork_id: f_cv_folds
+  step: inference
+  option: uncertainty_resampling
+  label: "Cross-fitting folds"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: cv_none, label: "No cross-fitting", ops_module: "ops.wage_ops", func: "set_cv", params: {k: 0}}
+  - {choice_id: cv_3, label: "3 folds", ops_module: "ops.wage_ops", func: "set_cv", params: {k: 3}}
+  - {choice_id: cv_5, label: "5 folds", ops_module: "ops.wage_ops", func: "set_cv", params: {k: 5}}
+  - {choice_id: cv_10, label: "10 folds", ops_module: "ops.wage_ops", func: "set_cv", params: {k: 10}}
+- fork_id: f_se
+  step: inference
+  option: standard_errors
+  label: "Standard error type"
+  optional: false
+  ordered: false
+  choices:
+  - {choice_id: se_classical, label: "Classical homoskedastic", ops_module: "ops.wage_ops", func: "set_se_type", params: {se: classical}}
+  - {choice_id: se_hc1, label: "HC1 heteroskedasticity-robust", ops_module: "ops.wage_ops", func: "set_se_type", params: {se: hc1}}
+  - {choice_id: se_cluster_occ, label: "Cluster by occupation (occ2)", ops_module: "ops.wage_ops", func: "set_se_type", params: {se: cluster, cluster: occ2}}
+  - {choice_id: se_bootstrap, label: "Test-set bootstrap", ops_module: "ops.wage_ops", func: "set_se_type", params: {se: bootstrap}}

@@ -1,0 +1,7 @@
+{
+  "target_d": 0.5384,
+  "tol": 0.0005384,
+  "tol_relative": 0.001,
+  "effect_measure": "cohens_d",
+  "paper_id": "Marshall_BritJournPoliSci_2015_GOYb"
+}

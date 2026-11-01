@@ -1,0 +1,31 @@
+{
+  "paper": "andreoni",
+  "assignment": {
+    "f_unit": "session_wide",
+    "f_sample": "all",
+    "f_sample2": "all",
+    "f_y": "givers_sum",
+    "f_transform": "raw",
+    "f_treat": "ask",
+    "f_controls": "awae_terms",
+    "f_controls2": "none",
+    "f_fe": "none",
+    "f_cluster": "block",
+    "f_se": "cluster",
+    "f_trim": "none",
+    "f_winsor": "none",
+    "f_outlier": "none",
+    "f_estimator": "combo_d"
+  },
+  "target_d": 1.8477,
+  "tol": 0.0018476999999999999,
+  "d": 1.8407035987973068,
+  "abs_err": 0.00699640120269307,
+  "success": false,
+  "t_stat": 3.5645071917230142,
+  "df": 15.0,
+  "n_obs": 64,
+  "note": "exp4_cluster_d:G=16,k=4",
+  "invalid": 0,
+  "invalid_reason": ""
+}

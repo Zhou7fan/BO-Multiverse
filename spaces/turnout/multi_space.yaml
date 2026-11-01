@@ -1,0 +1,515 @@
+schema_version: 0.2.0
+paper:
+  id: Marshall_BritJournPoliSci_2015_GOYb
+  title: Compensation or Constraint? Economic Globalization and Electoral Turnout
+  osf: osf.io/qfm2g
+hypothesis:
+  text: Foreign ownership reduces turnout (ownership-constraint hypothesis), all OECD
+    countries in the data.
+  direction: none
+  null_value: 0
+support_decision_rule:
+  direction: none
+  null_value: 0
+  test_type: two_sided
+  alpha: 0.05
+  close_tol: 0.0005384
+  require_significance: false
+  success_metric: tolerance
+  objective_mode: normalized_distance
+  targets_by_estimator:
+    custom: 0.5384
+  effect_measure: cohens_d
+  tolerance_relative: 0.001
+dataset:
+  data_paths:
+  - Turnout.dta
+  read_code: 'import numpy as np, pandas as pd
+
+    df = pd.read_stata(exp_dir + ''/data/Turnout.dta'', convert_categoricals=False)
+
+    df[''year2''] = np.where(df[''year''] > 2010, np.floor(df[''year''] / 10), df[''year''])
+
+    df[''logfdistock''] = np.log(df[''fdistock''].clip(lower=1e-9))
+
+    df[''logpopden''] = np.log(df[''popden''].clip(lower=1e-9))
+
+    df = df.sort_values([''cowcode'', ''year2'']).reset_index(drop=True)
+
+    df[''lag_logfdistock''] = df.groupby(''cowcode'')[''logfdistock''].shift(1)
+
+    df[''lag_logportequ''] = df.groupby(''cowcode'')[''logportequ''].shift(1)
+
+    df[''lag_logtrade''] = df.groupby(''cowcode'')[''logtrade''].shift(1)
+
+    '
+experiment:
+  mode: blind
+  agent_can_see_paper_text: false
+  agent_can_see_paper_code: false
+  success_definition: '|d - 0.5384| <= 0.0005384'
+  instantiation_notes: Reference path pinned from paper/Multi100 code; other menu
+    options expanded to a 10^7-scale multiverse.
+meta:
+  strict_roles: false
+  selection_seed: 20261024
+  source: Multi100 OSF osf.io/qfm2g
+  universe_count: 48988800
+forks:
+- fork_id: f_unit
+  step: data_ingestion_assembly
+  option: set_analysis_unit
+  label: Analysis unit
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: country_year
+    label: country-year
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+- fork_id: f_sample
+  step: sample_selection
+  option: filter_rows
+  label: Sample selection
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: all
+    label: all country-years
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: election_years
+    label: country-election years
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      notna: t
+  - choice_id: y1980
+    label: 1980-2008
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: 1980 <= year2 <= 2008
+  - choice_id: y1990
+    label: 1990-2008
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: 1990 <= year2 <= 2008
+  - choice_id: vap
+    label: VAP turnout sample
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      notna: turnoutvap
+  - choice_id: oecd
+    label: OECD countries
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      notna: turnout
+- fork_id: f_sample2
+  step: sample_selection
+  option: filter_rows
+  label: Additional sample window
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: all
+    label: no extra row filter
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: year_le2008
+    label: year <= 2008
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: year2 <= 2008
+  - choice_id: year_ge1970
+    label: year >= 1970
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: year2 >= 1970
+  - choice_id: drop_us
+    label: drop United States
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: country != 'United States'
+  - choice_id: year_ge1990
+    label: year >= 1990
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: year2 >= 1990
+- fork_id: f_y
+  step: concept_operationalization
+  option: map_hypothesis_concept
+  label: Outcome concept
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: turnout
+    label: turnout
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: turnout
+  - choice_id: turnoutvap
+    label: turnout (% VAP)
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: turnoutvap
+  - choice_id: log_turnout
+    label: log turnout
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: turnout
+      transform: log
+- fork_id: f_transform
+  step: variable_construction
+  option: monotonic_transform
+  label: Outcome transform
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: raw
+    label: raw
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: raw
+  - choice_id: log
+    label: log
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: log
+  - choice_id: sqrt
+    label: sqrt
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: sqrt
+  - choice_id: rank
+    label: rank
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: rank
+- fork_id: f_treat
+  step: concept_operationalization
+  option: treatment_exposure_mapping
+  label: Treatment / exposure
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: logfdistock
+    label: log FDI stock
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: logfdistock
+  - choice_id: fdistock
+    label: FDI stock
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: fdistock
+  - choice_id: fdiin
+    label: FDI inward
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: fdiin
+  - choice_id: fdiout
+    label: FDI outward
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: fdiout
+  - choice_id: lag_logfdistock
+    label: lagged log FDI stock
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: lag_logfdistock
+- fork_id: f_controls
+  step: model_specification
+  option: covariates_set
+  label: Covariate set
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no controls
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls: []
+  - choice_id: loggdppc
+    label: log GDP pc
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - loggdppc
+  - choice_id: loggdppc_growth
+    label: log GDP pc + growth
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - loggdppc
+      - growthpc
+  - choice_id: logpopden_fed
+    label: log population density + federalism
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - logpopden
+      - fed
+  - choice_id: macro
+    label: GDP pc + growth + unemployment + deindustrialization
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - loggdppc
+      - growthpc
+      - u
+      - deindust
+  - choice_id: political
+    label: polity + PR + compulsory voting
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - polity
+      - pr
+      - cvvfranklin
+  - choice_id: code_controls
+    label: paper control set
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - logreg
+      - vap3069
+      - timesince
+      - nopres
+      - cvvfranklin
+      - mixed
+      - pr
+      - disrel
+      - enps
+      - closeness
+- fork_id: f_controls2
+  step: model_specification
+  option: covariates_set
+  label: Additional covariates
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no extra controls
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls: []
+  - choice_id: fed
+    label: federalism
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls:
+      - fed
+  - choice_id: pr
+    label: PR system
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls:
+      - pr
+  - choice_id: u
+    label: unemployment
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls:
+      - u
+- fork_id: f_fe
+  step: model_specification
+  option: fixed_effects
+  label: Fixed effects
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no fixed effects
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols: []
+  - choice_id: year
+    label: year FE
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols:
+      - year2
+  - choice_id: country
+    label: country FE
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols:
+      - country
+- fork_id: f_cluster
+  step: inference
+  option: standard_errors
+  label: Clustering dimension
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: country
+    label: cluster by country
+    ops_module: ops.exp4_ops
+    func: set_cluster
+    params:
+      col: country
+  - choice_id: year2
+    label: cluster by year
+    ops_module: ops.exp4_ops
+    func: set_cluster
+    params:
+      col: year2
+- fork_id: f_se
+  step: inference
+  option: standard_errors
+  label: Standard error type
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: cluster
+    label: cluster-robust
+    ops_module: ops.exp4_ops
+    func: set_se
+    params:
+      se: cluster
+  - choice_id: classical
+    label: classical
+    ops_module: ops.exp4_ops
+    func: set_se
+    params:
+      se: classical
+  - choice_id: hc1
+    label: HC1
+    ops_module: ops.exp4_ops
+    func: set_se
+    params:
+      se: hc1
+- fork_id: f_trim
+  step: variable_construction
+  option: winsorize_trim
+  label: Trimming
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no trim
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: p1
+    label: trim y at 1%
+    ops_module: ops.exp4_ops
+    func: trim
+    params:
+      y: null
+      p: 0.01
+  - choice_id: p5
+    label: trim y at 5%
+    ops_module: ops.exp4_ops
+    func: trim
+    params:
+      y: null
+      p: 0.05
+- fork_id: f_winsor
+  step: variable_construction
+  option: winsorize_trim
+  label: Winsorizing
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no winsor
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: p1
+    label: winsor y at 1%
+    ops_module: ops.exp4_ops
+    func: winsorize
+    params:
+      y: null
+      p: 0.01
+  - choice_id: p5
+    label: winsor y at 5%
+    ops_module: ops.exp4_ops
+    func: winsorize
+    params:
+      y: null
+      p: 0.05
+- fork_id: f_outlier
+  step: diagnostic_sensitivity
+  option: expand_existing_fork
+  label: Outliers
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no outlier drop
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: sd2
+    label: drop |y-mean|>2sd
+    ops_module: ops.exp4_ops
+    func: filter_outlier
+    params:
+      y: null
+      k: 2.0
+  - choice_id: sd3
+    label: drop |y-mean|>3sd
+    ops_module: ops.exp4_ops
+    func: filter_outlier
+    params:
+      y: null
+      k: 3.0
+- fork_id: f_estimator
+  step: effect_size_reporting
+  option: effect_size_conversion
+  label: Effect size conversion
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: cluster_d
+    label: OLS t -> d
+    ops_module: ops.exp4_ops
+    func: use_cluster_d
+    params:
+      sign: absolute
+  - choice_id: corr_d
+    label: correlation -> d
+    ops_module: ops.exp4_ops
+    func: use_corr_d
+    params:
+      sign: absolute

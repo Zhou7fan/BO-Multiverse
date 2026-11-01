@@ -1,0 +1,18 @@
+# Not part of the code release
+overleaf_paper/
+template/
+_scripts/
+_*.sh
+_*.txt
+_*.html
+_*.png
+
+# Build artifacts
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.synctex.gz
+__pycache__/

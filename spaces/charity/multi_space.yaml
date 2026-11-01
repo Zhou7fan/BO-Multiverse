@@ -1,0 +1,527 @@
+schema_version: 0.2.0
+paper:
+  id: Andreoni_JournPoliEco_2017_La9x
+  title: 'Avoiding the Ask: A Field Experiment on Altruism and Charitable Giving'
+  osf: osf.io/hd8e6
+hypothesis:
+  text: The verbal ask increased giving (number of givers per 23-minute session).
+  direction: none
+  null_value: 0
+support_decision_rule:
+  direction: none
+  null_value: 0
+  test_type: two_sided
+  alpha: 0.05
+  close_tol: 0.0018476999999999999
+  require_significance: false
+  success_metric: tolerance
+  objective_mode: normalized_distance
+  targets_by_estimator:
+    custom: 1.8477
+  effect_measure: cohens_d
+  tolerance_relative: 0.001
+dataset:
+  data_paths:
+  - workingdata2009.csv
+  read_code: 'import numpy as np, pandas as pd
+
+    df = pd.read_csv(exp_dir + ''/data/workingdata2009.csv'')
+
+    df[''session_id''] = df[''date''].astype(str) + ''_'' + df[''session''].astype(str)
+    + ''_'' + df[''session_quarter''].astype(str)
+
+    df[''block_id''] = df[''date''].astype(str) + ''_'' + df[''session''].astype(str)
+
+    df[''ask''] = df[''treatment''].astype(str).str.startswith(''A'').astype(float)
+
+    df[''both_doors''] = df[''treatment''].astype(str).str.endswith(''2'').astype(float)
+
+    df[''ask_x_both''] = df[''ask''] * df[''both_doors'']
+
+    '
+experiment:
+  mode: blind
+  agent_can_see_paper_text: false
+  agent_can_see_paper_code: false
+  success_definition: '|d - 1.8477| <= 0.0018476999999999999'
+  instantiation_notes: Reference path pinned from paper/Multi100 code; other menu
+    options expanded to a 10^7-scale multiverse.
+meta:
+  strict_roles: false
+  selection_seed: 20261024
+  source: Multi100 OSF osf.io/hd8e6
+  universe_count: 89579520
+forks:
+- fork_id: f_unit
+  step: data_ingestion_assembly
+  option: set_analysis_unit
+  label: Analysis unit
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: session_door
+    label: session x door rows
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: session_wide
+    label: one row per session, sum both doors (AWAEK reference)
+    ops_module: ops.exp4_ops
+    func: collapse_sum
+    params:
+      by:
+      - session_id
+      keep_first:
+      - date
+      - session
+      - session_quarter
+      - block_id
+      - ask
+      - both_doors
+      - ask_x_both
+      sum_cols:
+      - givers_total
+      - givers_in
+      - givers_out
+      - money
+      - traffic_total
+- fork_id: f_sample
+  step: sample_selection
+  option: filter_rows
+  label: Sample selection
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: all
+    label: all sessions
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: door1
+    label: door 1
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      col: door_num
+      values:
+      - 1
+  - choice_id: door2
+    label: door 2
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      col: door_num
+      values:
+      - 2
+- fork_id: f_sample2
+  step: sample_selection
+  option: filter_rows
+  label: Additional sample window
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: all
+    label: no extra row filter
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: quarter1
+    label: first quarter of block
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: session_quarter == 1
+  - choice_id: day_le2
+    label: first two days
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: date in ['6-Dec-09', '7-Dec-09']
+  - choice_id: session_le2
+    label: sessions 1-2
+    ops_module: ops.exp4_ops
+    func: filter_rows
+    params:
+      expr: session <= 2
+- fork_id: f_y
+  step: concept_operationalization
+  option: map_hypothesis_concept
+  label: Outcome concept
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: givers_total
+    label: givers (door row)
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: givers_total
+  - choice_id: givers_in
+    label: givers (in)
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: givers_in
+  - choice_id: givers_out
+    label: givers (out)
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: givers_out
+  - choice_id: money
+    label: money donated (door row)
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: money
+  - choice_id: givers_sum
+    label: total givers (both doors)
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: givers_total
+  - choice_id: money_sum
+    label: total money (both doors)
+    ops_module: ops.exp4_ops
+    func: set_y
+    params:
+      y: money
+- fork_id: f_transform
+  step: variable_construction
+  option: monotonic_transform
+  label: Outcome transform
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: raw
+    label: raw
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: raw
+  - choice_id: log1p
+    label: log1p
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: log1p
+  - choice_id: sqrt
+    label: sqrt
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: sqrt
+  - choice_id: rank
+    label: rank
+    ops_module: ops.exp4_ops
+    func: transform_y
+    params:
+      kind: rank
+- fork_id: f_treat
+  step: concept_operationalization
+  option: treatment_exposure_mapping
+  label: Treatment / exposure
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: ask
+    label: verbal ask vs no ask
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: ask
+  - choice_id: both_doors
+    label: both doors occupied
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: both_doors
+  - choice_id: ask_x_both
+    label: ask x both doors
+    ops_module: ops.exp4_ops
+    func: set_treatment_cont
+    params:
+      col: ask_x_both
+- fork_id: f_controls
+  step: model_specification
+  option: covariates_set
+  label: Covariate set
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no controls
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls: []
+  - choice_id: traffic_in
+    label: traffic in
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - traffic_in
+  - choice_id: traffic_out
+    label: traffic out
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - traffic_out
+  - choice_id: traffic_both
+    label: traffic in + out
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - traffic_in
+      - traffic_out
+  - choice_id: traffic_total
+    label: total traffic
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - traffic_total
+  - choice_id: awae_terms
+    label: AWAEK interaction terms (reference)
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - both_doors
+      - ask_x_both
+  - choice_id: both_doors
+    label: both doors
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - both_doors
+  - choice_id: traffic_awae
+    label: traffic + interaction terms
+    ops_module: ops.exp4_ops
+    func: set_controls
+    params:
+      controls:
+      - traffic_total
+      - both_doors
+      - ask_x_both
+- fork_id: f_controls2
+  step: model_specification
+  option: covariates_set
+  label: Additional covariates
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no extra controls
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls: []
+  - choice_id: day
+    label: day dummies
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls: []
+  - choice_id: session
+    label: session dummies
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls: []
+  - choice_id: traffic
+    label: traffic total
+    ops_module: ops.exp4_ops
+    func: add_controls
+    params:
+      controls:
+      - traffic_total
+- fork_id: f_fe
+  step: model_specification
+  option: fixed_effects
+  label: Fixed effects
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no fixed effects
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols: []
+  - choice_id: date
+    label: date FE
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols:
+      - date
+  - choice_id: session
+    label: session FE
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols:
+      - session
+  - choice_id: block
+    label: date x session FE
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols:
+      - block_id
+  - choice_id: date_quarter
+    label: date + session-quarter FE
+    ops_module: ops.exp4_ops
+    func: set_fe
+    params:
+      cols:
+      - date
+      - session_quarter
+- fork_id: f_cluster
+  step: inference
+  option: standard_errors
+  label: Clustering dimension
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: block
+    label: cluster by block
+    ops_module: ops.exp4_ops
+    func: set_cluster
+    params:
+      col: block_id
+  - choice_id: date
+    label: cluster by date
+    ops_module: ops.exp4_ops
+    func: set_cluster
+    params:
+      col: date
+- fork_id: f_se
+  step: inference
+  option: standard_errors
+  label: Standard error type
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: cluster
+    label: cluster-robust
+    ops_module: ops.exp4_ops
+    func: set_se
+    params:
+      se: cluster
+  - choice_id: classical
+    label: classical
+    ops_module: ops.exp4_ops
+    func: set_se
+    params:
+      se: classical
+  - choice_id: hc1
+    label: HC1
+    ops_module: ops.exp4_ops
+    func: set_se
+    params:
+      se: hc1
+- fork_id: f_trim
+  step: variable_construction
+  option: winsorize_trim
+  label: Trimming
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no trim
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: p1
+    label: trim y at 1%
+    ops_module: ops.exp4_ops
+    func: trim
+    params:
+      y: null
+      p: 0.01
+  - choice_id: p5
+    label: trim y at 5%
+    ops_module: ops.exp4_ops
+    func: trim
+    params:
+      y: null
+      p: 0.05
+- fork_id: f_winsor
+  step: variable_construction
+  option: winsorize_trim
+  label: Winsorizing
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no winsor
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: p1
+    label: winsor y at 1%
+    ops_module: ops.exp4_ops
+    func: winsorize
+    params:
+      y: null
+      p: 0.01
+  - choice_id: p5
+    label: winsor y at 5%
+    ops_module: ops.exp4_ops
+    func: winsorize
+    params:
+      y: null
+      p: 0.05
+- fork_id: f_outlier
+  step: diagnostic_sensitivity
+  option: expand_existing_fork
+  label: Outliers
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: none
+    label: no outlier drop
+    ops_module: ops.exp4_ops
+    func: noop
+    params: {}
+  - choice_id: sd2
+    label: drop |y-mean|>2sd
+    ops_module: ops.exp4_ops
+    func: filter_outlier
+    params:
+      y: null
+      k: 2.0
+  - choice_id: sd3
+    label: drop |y-mean|>3sd
+    ops_module: ops.exp4_ops
+    func: filter_outlier
+    params:
+      y: null
+      k: 3.0
+- fork_id: f_estimator
+  step: effect_size_reporting
+  option: effect_size_conversion
+  label: Effect size conversion
+  optional: false
+  ordered: false
+  choices:
+  - choice_id: combo_d
+    label: AWAEK ask + ask x both doors
+    ops_module: ops.exp4_ops
+    func: use_cluster_combo_d
+    params:
+      terms:
+        ask: 1.0
+        ask_x_both: 1.0
+  - choice_id: cluster_d
+    label: OLS t -> d
+    ops_module: ops.exp4_ops
+    func: use_cluster_d
+    params:
+      sign: absolute

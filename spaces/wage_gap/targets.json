@@ -1,0 +1,11 @@
+{
+  "paper_id": "paper_0c7a2c63d8448666a3a7",
+  "description": "Paper-reported gender log hourly wage gap (2011 wave, pooled OLS, full controls). Target = -0.1505. tol=0.0005 matches exp4's max(0.0005, 0.001*|target|). Reference loss is 2.8e-05, so the reference path is inside tol.",
+  "direction": "negative",
+  "null_value": 0,
+  "alpha": 0.05,
+  "test_type": "two_sided",
+  "target_d": -0.1505,
+  "tol": 0.0005,
+  "effect_measure": "log_wage_gap"
+}
